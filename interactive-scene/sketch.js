@@ -17,6 +17,10 @@ const rPaddleX = 370;
 const paddleSpeed = 10;
 const minMove = 5;
 
+const lineWidth = 10;
+const lineHeight = 25;
+const lineGap = 25;
+
 const lTextX = 100;
 const rTextX = 300;
 const textY = 50;
@@ -86,7 +90,8 @@ function drawGame() {
   text(lScore.toString(),lTextX,textY);
   text(rScore.toString(),rTextX,textY);
   
-  
+  for(let y = 0; y <= height; y+=lineHeight+lineGap) 
+    rect(width/2-lineWidth/2,y,lineWidth,lineHeight);
 }
 
 function resetState() {
