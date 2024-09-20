@@ -1,6 +1,9 @@
 const width = 400;
 const height = 400;
 
+const btnWidth = 200;
+const btnHeight = 100;
+
 const ballDiam = 25;
 const speed = 75;
 const rebound = 12;
@@ -8,7 +11,7 @@ const maxAngle = 0.45 * Math.PI;
 const trails = 4;
 const maxTrailAlpha = 150;
 const bounceEnergy = 1.18;
-const initVel = 4;
+const initVel = 6;
 
 const paddleW = 10;
 const paddleH = 80;
@@ -24,6 +27,8 @@ const lineGap = 25;
 const lTextX = 100;
 const rTextX = 300;
 const textY = 50;
+
+let playing = false;
 
 let time = 0;
 let cScale = 0.02;
@@ -46,7 +51,6 @@ let rScore = 0;
 function setup() {
   createCanvas(width,height);
   noStroke();
-  textSize(25);
 }
 
 function movePaddles() {
@@ -94,11 +98,22 @@ function drawGame() {
     rect(width/2-lineWidth/2,y,lineWidth,lineHeight);
 }
 
+function endGame() {
+  lScore = 0;
+  rScore = 0;
+  playing = false;
+}
+
 function resetState() {
+  if (Math.max(lScore,rScore) >= 10) {
+    endGame();
+    return;
+  }
+
   ballX = width/2;
   ballY = height/2;
   
-  let sign = (lScore+rScore)/2 % 2?-1:1;
+  let sign = (lScore+rScore) % 2?-1:1;
   velX = sign*initVel;
   velY = 0;
 }
@@ -131,11 +146,11 @@ function updateState() {
   ballY += velY;
   
   if (ballX <= ballDiam/2){
-    resetState();
     ++rScore;
-  } else if (ballX >= width-ballDiam/2){
     resetState();
+  } else if (ballX >= width-ballDiam/2){
     ++lScore;
+    resetState();
   }
   
   if (ballY <= ballDiam/2 || ballY >= width-ballDiam/2)
@@ -153,9 +168,32 @@ function updateState() {
   ++time;
 }
 
-function draw() {
+function playGame() {
   movePaddles();
   createNoise();
   drawGame();
   updateState();
+}
+
+function startScreen() {
+  const colors = ["white", "blue"];
+  const xRange = mouseX >= width/2-btnWidth/2 && mouseX <= width/2+btnWidth/2;
+  const yRange = mouseY >= height/2-btnHeight/2 && mouseY <= height/2+btnHeight/2;
+  const hovering = xRange && yRange;
+  background("black");
+  fill(colors[1-hovering]);
+  rect(width/2-btnWidth/2,height/2-btnHeight/2,btnWidth,btnHeight); 
+  fill(colors[int(hovering)]);
+  textSize(btnHeight-30);
+  textAlign(CENTER,CENTER);
+  text("PLAY",width/2,height/2);
+  if (hovering && mouseIsPressed)
+    playing = true;
+}
+
+function draw() {
+  if (playing)
+    playGame();
+  else
+    startScreen();
 }
