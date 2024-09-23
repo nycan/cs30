@@ -48,9 +48,14 @@ let rPaddle = height/2;
 let lScore = 0;
 let rScore = 0;
 
+let pointSound;
+let bounceSound;
+
 function setup() {
   createCanvas(width,height);
   noStroke();
+  pointSound = loadSound("assets/point.mp3");
+  bounceSound = loadSound("assets/bounce.mp3");
 }
 
 function movePaddles() {
@@ -104,11 +109,15 @@ function endGame() {
   playing = false;
 }
 
+function endScreen() {
+  background(0);
+  text(lScore>rScore?"You lose!":"You win!",width/2,height/2);
+  textSize((btnHeight-30)/2);
+  text("Final score: "+lScore.toString()+" : "+rScore.toString(), width/2, height/2+btnHeight);
+}
+
 function resetState() {
-  if (Math.max(lScore,rScore) >= 10) {
-    endGame();
-    return;
-  }
+  pointSound.play();
 
   ballX = width/2;
   ballY = height/2;
@@ -116,11 +125,17 @@ function resetState() {
   let sign = (lScore+rScore) % 2?-1:1;
   velX = sign*initVel;
   velY = 0;
+
+  if (Math.max(lScore,rScore) >= 10) {
+    setTimeout(endGame, 5000);
+    return;
+  }
 }
 
 function hitPaddles() {
   if (ballY >= lPaddle-paddleH/2 && ballY <= lPaddle+paddleH/2) {
     if (ballX-ballDiam/2 <= lPaddleX+paddleW){
+      bounceSound.play();
       let angle = (ballY-lPaddle)/paddleH*2*maxAngle;
       velX = Math.cos(angle)*rebound;
       velY = Math.sin(angle)*rebound;
@@ -130,6 +145,7 @@ function hitPaddles() {
   
   if (ballY >= rPaddle-paddleH/2 && ballY <= rPaddle+paddleH/2) {
     if (ballX+ballDiam/2 >= rPaddleX){
+      bounceSound.play();
       let angle = (ballY-rPaddle)/paddleH*2*maxAngle;
       velX = -Math.cos(angle)*rebound;
       velY = Math.sin(angle)*rebound;
@@ -169,6 +185,10 @@ function updateState() {
 }
 
 function playGame() {
+  if (Math.max(lScore,rScore) >= 10) {
+    endScreen();
+    return;
+  }
   movePaddles();
   createNoise();
   drawGame();
