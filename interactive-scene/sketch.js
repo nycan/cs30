@@ -16,7 +16,7 @@ const initVel = 6;
 const paddleW = 10;
 const paddleH = 80;
 const lPaddleX = 20;
-const rPaddleX = 370;
+const rPaddleX = width-lPaddleX-paddleW;
 const paddleSpeed = 10;
 const minMove = 5;
 
@@ -27,6 +27,8 @@ const lineGap = 25;
 const lTextX = 100;
 const rTextX = 300;
 const textY = 50;
+
+const pointsToWin = 10;
 
 let playing = false;
 
@@ -43,7 +45,6 @@ let lastY = Array(trails).fill(ballY);
 
 let lPaddle = height/2;
 let rPaddle = height/2;
-
 
 let lScore = 0;
 let rScore = 0;
@@ -111,6 +112,8 @@ function endGame() {
 
 function endScreen() {
   background(0);
+  fill("white");
+  textSize(btnHeight-30);
   text(lScore>rScore?"You lose!":"You win!",width/2,height/2);
   textSize((btnHeight-30)/2);
   text("Final score: "+lScore.toString()+" : "+rScore.toString(), width/2, height/2+btnHeight);
@@ -126,7 +129,7 @@ function resetState() {
   velX = sign*initVel;
   velY = 0;
 
-  if (Math.max(lScore,rScore) >= 10) {
+  if (Math.max(lScore,rScore) >= pointsToWin) {
     setTimeout(endGame, 5000);
     return;
   }
@@ -185,7 +188,7 @@ function updateState() {
 }
 
 function playGame() {
-  if (Math.max(lScore,rScore) >= 10) {
+  if (Math.max(lScore,rScore) >= pointsToWin) {
     endScreen();
     return;
   }

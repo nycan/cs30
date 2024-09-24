@@ -1,3 +1,7 @@
 # CS 30 projects
 
-## [Interactive scene](interactive-scene)
+## Demos
+- [Traffic Light](traffic-light)
+
+## Projects
+- [Interactive scene](interactive-scene)
