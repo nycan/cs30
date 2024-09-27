@@ -41,10 +41,10 @@ let tScale = 0.008;
 
 let ballX;
 let ballY;
-let velX = initVel;
+let velX;
 let velY = 0;
-let lastX = Array(trails).fill(ballX);
-let lastY = Array(trails).fill(ballY);
+let lastX;
+let lastY;
 
 let lPaddle;
 let rPaddle;
@@ -55,23 +55,36 @@ let rScore = 0;
 let pointSound;
 let bounceSound;
 
+let bgBuffer;
+
 function setup() {
   createCanvas(windowWidth,windowHeight);
   noStroke();
   pointSound = loadSound("assets/point.mp3");
   bounceSound = loadSound("assets/bounce.mp3");
 
-  btnWidth = windowWidth/2;
-  btnHeight = windowHeight/4;
-  speed = windowWidth*0.1875;
-  rebound = windowWidth*0.03;
-  initVel = windowWidth*0.015;
+  btnWidth = round(windowWidth/2);
+  btnHeight = round(windowHeight/4);
+
+  speed = round(windowWidth*0.1875);
+  rebound = round(windowWidth*0.03);
+  initVel = round(windowWidth*0.015);
+
   rPaddleX = windowWidth-lPaddleX-paddleW;
   rTextX = windowWidth-lTextX;
-  ballX = windowWidth/2;
-  ballY = windowHeight/2;
-  lPaddle = windowHeight/2;
-  rPaddle = windowHeight/2;
+
+  ballX = round(windowWidth/2);
+  ballY = round(windowHeight/2);
+
+  lPaddle = round(windowHeight/2);
+  rPaddle = round(windowHeight/2);
+
+  lastX = Array(trails).fill(ballX);
+  lastY = Array(trails).fill(ballY);
+
+  velX = initVel;
+
+  bgBuffer = createGraphics(windowWidth, windowHeight);
 }
 
 function movePaddles() {
@@ -97,13 +110,14 @@ function createNoise() {
   for(let i = 0; i<windowWidth; ++i){
     for(let j = 0; j<windowHeight; ++j){
       let ns = 255-255*turb(i,j);
-      set(i,j,ns);
+      bgBuffer.set(i,j,ns);
     }
   }
+  bgBuffer.updatePixels();
 }
 
 function drawGame() {
-  updatePixels();
+  image(bgBuffer, windowWidth, windowHeight);
   
   for(let i = 0; i<trails; ++i) {
     fill(color(0,0,255,maxTrailAlpha*i/trails));
@@ -177,7 +191,6 @@ function hitPaddles() {
 }
 
 function updateState() {
-  
   velX += speed*(turb(ballX+1,ballY)-turb(ballX-1,ballY));
   velY += speed*(turb(ballX,ballY+1)-turb(ballX,ballY-1));
   ballX += velX;
