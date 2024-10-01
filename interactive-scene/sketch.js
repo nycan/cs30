@@ -20,7 +20,7 @@ const paddleW = 10;
 const paddleH = 80;
 const lPaddleX = 20;
 let rPaddleX;
-const paddleSpeed = 10;
+let paddleSpeed;
 const minMove = 5;
 
 const lineWidth = 10;
@@ -29,7 +29,7 @@ const lineGap = 25;
 
 const lTextX = 100;
 let rTextX;
-const textY = 50;
+let textY;
 
 const pointsToWin = 10;
 
@@ -66,12 +66,13 @@ function setup() {
   btnWidth = round(windowWidth/2);
   btnHeight = round(windowHeight/4);
 
-  speed = round(windowWidth*0.1875);
-  rebound = round(windowWidth*0.03);
-  initVel = round(windowWidth*0.015);
+  speed = round(windowWidth*2);
+  rebound = round(windowWidth*0.45);
+  initVel = round(windowWidth*0.225);
 
   rPaddleX = windowWidth-lPaddleX-paddleW;
   rTextX = windowWidth-lTextX;
+  textY = btnHeight;
 
   ballX = round(windowWidth/2);
   ballY = round(windowHeight/2);
@@ -84,27 +85,31 @@ function setup() {
 
   velX = initVel;
 
+  paddleSpeed = round(windowHeight);
+
   bgBuffer = createGraphics(windowWidth, windowHeight);
 
   setInterval(async () => {
     if (playing) {
       createNoise();
     }
-  }, 500);
+  }, 10000);
 }
 
 function movePaddles() {
+  let fps = frameRate();
+
   if (keyIsDown(UP_ARROW)) {
-    rPaddle = Math.max(paddleH/2,rPaddle-paddleSpeed);
+    rPaddle = Math.max(paddleH/2,rPaddle-paddleSpeed/fps);
   }
   if (keyIsDown(DOWN_ARROW)) {
-    rPaddle = Math.min(windowHeight-paddleH/2,rPaddle+paddleSpeed);
+    rPaddle = Math.min(windowHeight-paddleH/2,rPaddle+paddleSpeed/fps);
   }
   if (ballY-minMove > lPaddle) {
-    lPaddle = Math.min(windowHeight-paddleH/2,lPaddle+paddleSpeed);
+    lPaddle = Math.min(windowHeight-paddleH/2,lPaddle+paddleSpeed/fps);
   }
   else if (ballY+minMove < lPaddle) {
-    lPaddle = Math.max(paddleH/2,lPaddle-paddleSpeed);
+    lPaddle = Math.max(paddleH/2,lPaddle-paddleSpeed/fps);
   }
 }
 
@@ -171,7 +176,7 @@ function resetState() {
   ballY = windowHeight/2;
   
   let sign = (lScore+rScore) % 2?-1:1;
-  velX = sign*initVel;
+  velX = sign*initVel/frameRate();
   velY = 0;
 
   if (Math.max(lScore,rScore) >= pointsToWin) {
@@ -181,12 +186,14 @@ function resetState() {
 }
 
 function hitPaddles() {
+  let fps = frameRate();
+
   if (ballY >= lPaddle-paddleH/2 && ballY <= lPaddle+paddleH/2) {
     if (ballX-ballDiam/2 <= lPaddleX+paddleW){
       bounceSound.play();
       let angle = (ballY-lPaddle)/paddleH*2*maxAngle;
-      velX = Math.cos(angle)*rebound;
-      velY = Math.sin(angle)*rebound;
+      velX = Math.cos(angle)*rebound/fps;
+      velY = Math.sin(angle)*rebound/fps;
       ballX = lPaddleX+paddleW+ballDiam/2;
     }
   }
@@ -195,16 +202,18 @@ function hitPaddles() {
     if (ballX+ballDiam/2 >= rPaddleX){
       bounceSound.play();
       let angle = (ballY-rPaddle)/paddleH*2*maxAngle;
-      velX = -Math.cos(angle)*rebound;
-      velY = Math.sin(angle)*rebound;
+      velX = -Math.cos(angle)*rebound/fps;
+      velY = Math.sin(angle)*rebound/fps;
       ballX = rPaddleX-ballDiam/2;
     }
   }
 }
 
 function updateState() {
-  velX += speed*(turb(ballX+1,ballY)-turb(ballX-1,ballY));
-  velY += speed*(turb(ballX,ballY+1)-turb(ballX,ballY-1));
+  let fps = frameRate();
+
+  velX += speed/fps*(turb(ballX+1,ballY)-turb(ballX-1,ballY));
+  velY += speed/fps*(turb(ballX,ballY+1)-turb(ballX,ballY-1));
   ballX += velX;
   ballY += velY;
   
@@ -217,7 +226,7 @@ function updateState() {
     resetState();
   }
   
-  if (ballY <= ballDiam/2 || ballY >= windowWidth-ballDiam/2) {
+  if (ballY <= ballDiam/2 || ballY >= windowHeight-ballDiam/2) {
     velY = -bounceEnergy*velY;
   }
   hitPaddles();
