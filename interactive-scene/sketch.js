@@ -85,6 +85,12 @@ function setup() {
   velX = initVel;
 
   bgBuffer = createGraphics(windowWidth, windowHeight);
+
+  setInterval(async () => {
+    if (playing) {
+      createNoise();
+    }
+  }, 500);
 }
 
 function movePaddles() {
@@ -106,18 +112,24 @@ function turb(x,y) {
   return noise(cScale*x,cScale*y,tScale*time);
 }
 
-function createNoise() {
+async function createNoise() {
+  bgBuffer.loadPixels();
   for(let i = 0; i<windowWidth; ++i){
     for(let j = 0; j<windowHeight; ++j){
       let ns = 255-255*turb(i,j);
-      bgBuffer.set(i,j,ns);
+      let ind = (j*windowWidth + i)*4;
+      
+      for(let c = 0; c<3; ++c) {
+        bgBuffer.pixels[ind+c] = ns;
+      }
+      bgBuffer.pixels[ind+3] = 255;
     }
   }
   bgBuffer.updatePixels();
 }
 
 function drawGame() {
-  image(bgBuffer, windowWidth, windowHeight);
+  image(bgBuffer, 0, 0, windowWidth, windowHeight);
   
   for(let i = 0; i<trails; ++i) {
     fill(color(0,0,255,maxTrailAlpha*i/trails));
@@ -226,7 +238,6 @@ function playGame() {
     return;
   }
   movePaddles();
-  createNoise();
   drawGame();
   updateState();
 }
