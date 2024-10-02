@@ -93,7 +93,7 @@ function setup() {
     if (playing) {
       createNoise();
     }
-  }, 10000);
+  }, 1000);
 }
 
 function movePaddles() {
@@ -134,7 +134,7 @@ async function createNoise() {
 }
 
 function drawGame() {
-  image(bgBuffer, 0, 0, windowWidth, windowHeight);
+  image(bgBuffer,0,0);
   
   for(let i = 0; i<trails; ++i) {
     fill(color(0,0,255,maxTrailAlpha*i/trails));
@@ -265,6 +265,7 @@ function startScreen() {
   text("PLAY",windowWidth/2,windowHeight/2);
   if (hovering && mouseIsPressed) {
     playing = true;
+    createNoise();
   }
 }
 
