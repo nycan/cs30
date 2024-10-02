@@ -66,7 +66,7 @@ function setup() {
   btnWidth = round(windowWidth/2);
   btnHeight = round(windowHeight/4);
 
-  speed = round(windowWidth*2);
+  speed = round(windowWidth*1.1);
   rebound = round(windowWidth*0.45);
   initVel = round(windowWidth*0.225);
 
