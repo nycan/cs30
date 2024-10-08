@@ -10,7 +10,7 @@
 let video;
 
 function setup() {
-  createCanvas(windowWidth, windowHeight);
+  createCanvas(displayWidth, displayHeight);
 
   const constraints = {
     audio: false,
@@ -25,7 +25,5 @@ function setup() {
 }
 
 function draw() {
-  background(220);
-
   image(video,0,0);
 }
