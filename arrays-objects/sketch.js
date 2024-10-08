@@ -10,7 +10,7 @@
 let video;
 
 function setup() {
-  createCanvas(displayWidth, displayHeight);
+  createCanvas(displayWidth, displayHeight, WEBGL);
 
   const constraints = {
     audio: false,
@@ -22,8 +22,18 @@ function setup() {
   };
   video = createCapture(constraints);
   video.hide();
+
+  normalMaterial();
 }
 
 function draw() {
+  background(220);
   image(video,0,0);
+
+  push();
+  rotateZ(-radians(rotationZ));
+  rotateX(-radians(rotationX));
+  rotateY(-radians(rotationY));
+  box(70,70,70);
+  pop();
 }
