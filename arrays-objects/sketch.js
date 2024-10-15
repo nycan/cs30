@@ -8,9 +8,17 @@
 // Disclaimer: lots of object detection code is from https://editor.p5js.org/tomas.decamino/sketches/qRTOcPD5N
 
 let video;
+let font;
+
+function preload() {
+  font = loadFont(
+    "https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Bold.otf"
+  );
+}
 
 function setup() {
   createCanvas(displayWidth, displayHeight, WEBGL);
+  textFont(font, 25);
 
   const constraints = {
     audio: false,
@@ -30,10 +38,13 @@ function draw() {
   background(220);
   image(video,0,0);
 
+  text(`${rotationX}, ${rotationY}, ${rotationZ}`,20,20);
+
   push();
-  rotateZ(-radians(rotationZ));
-  rotateX(-radians(rotationX));
-  rotateY(-radians(rotationY));
+  translate(0,0,70);
+  rotateZ(radians(rotationZ));
+  rotateX(radians(rotationX));
+  rotateY(radians(rotationY));
   box(70,70,70);
   pop();
 }
