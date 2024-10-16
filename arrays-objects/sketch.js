@@ -5,8 +5,6 @@
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
 
-// Disclaimer: lots of object detection code is from https://editor.p5js.org/tomas.decamino/sketches/qRTOcPD5N
-
 let video;
 let font;
 
@@ -48,6 +46,7 @@ function preload() {
 function setup() {
   createCanvas(displayWidth, displayHeight, WEBGL);
   textFont(font, 25);
+  angleMode(RADIANS);
 
   const constraints = {
     audio: false,
@@ -67,13 +66,15 @@ function draw() {
   background(220);
   image(video,0,0);
 
-  text(`${rotationX}, ${rotationY}, ${rotationZ}`,20,20);
+  text(`${rotationX}`,20,20);
+  text(`${rotationY}`,20,40);
+  text(`${rotationZ}`,20,60);
 
   push();
   translate(0,0,70);
-  rotateZ(-radians(rotationZ));
-  rotateX(-radians(rotationX));
-  rotateY(-radians(rotationY));
+  rotateZ(-rotationZ);
+  rotateX(-rotationX);
+  rotateY(-rotationY);
   box(70,70,70);
   pop();
 }
