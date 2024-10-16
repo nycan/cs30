@@ -7,6 +7,19 @@
 
 let video;
 let font;
+let cam;
+
+let vel = {
+  x: 0,
+  y: 0,
+  z: 0
+}
+
+let pos = {
+  x: 0,
+  y: 0,
+  z: 0
+}
 
 let hasSensorPermission = !(DeviceOrientationEvent.requestPermission || DeviceMotionEvent.requestPermission);
 
@@ -44,7 +57,7 @@ function preload() {
 }
 
 function setup() {
-  createCanvas(displayWidth, displayHeight, WEBGL);
+  createCanvas(windowWidth, windowHeight, WEBGL);
   textFont(font, 25);
   angleMode(RADIANS);
 
@@ -60,21 +73,33 @@ function setup() {
   video.hide();
 
   normalMaterial();
+  
+  cam = createCamera();
+  setCamera(cam);
 }
 
 function draw() {
   background(220);
-  image(video,0,0);
-
-  text(`${rotationX}`,20,20);
-  text(`${rotationY}`,20,40);
-  text(`${rotationZ}`,20,60);
+  //image(video,0,0);
+  
+  vel.x += 10*accelerationX;
+  vel.y += 10*accelerationY;
+  vel.z += 10*accelerationZ;
+  
+  pos.x = vel.x;
+  pos.y = vel.y;
+  pos.z = vel.z;
+  
+  text(`${pos.x},${pos.y},${pos.z}`)
+  
+  cam.setPosition(pos.x, pos.y, pos.z);
+  cam.lookAt(0,0,0);
 
   push();
   translate(0,0,70);
-  rotateZ(-rotationZ);
-  rotateX(-rotationX);
-  rotateY(-rotationY);
+  //rotateY(rotationZ);
+  //rotateX(rotationX);
+  //rotateZ(rotationY);
   box(70,70,70);
   pop();
 }
