@@ -10,6 +10,35 @@
 let video;
 let font;
 
+let hasSensorPermission = !(DeviceOrientationEvent.requestPermission || DeviceMotionEvent.requestPermission);
+
+function begPermission(){
+  if (DeviceOrientationEvent.requestPermission){
+    DeviceOrientationEvent.requestPermission()
+      .then(response => {
+        if (response === 'granted') {
+          if (DeviceMotionEvent.requestPermission){
+            DeviceMotionEvent.requestPermission()
+              .then(response => {
+                if (response === 'granted') {
+                  hasSensorPermission = true;
+                }
+              })
+              .catch(alert);
+          }
+        }
+      })
+      .catch(alert);
+  }
+}
+
+function touchEnded() {
+  if (!hasSensorPermission){
+    begPermission();
+  }
+}
+
+
 function preload() {
   font = loadFont(
     "https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Bold.otf"
@@ -42,9 +71,9 @@ function draw() {
 
   push();
   translate(0,0,70);
-  rotateZ(radians(rotationZ));
-  rotateX(radians(rotationX));
-  rotateY(radians(rotationY));
+  rotateZ(-radians(rotationZ));
+  rotateX(-radians(rotationX));
+  rotateY(-radians(rotationY));
   box(70,70,70);
   pop();
 }
