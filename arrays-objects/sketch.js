@@ -9,17 +9,9 @@ let video;
 let font;
 let cam;
 
-let vel = {
-  x: 0,
-  y: 0,
-  z: 0
-}
+let flow;
+let pPixels;
 
-let pos = {
-  x: 0,
-  y: 0,
-  z: 0
-}
 
 let hasSensorPermission = !(DeviceOrientationEvent.requestPermission || DeviceMotionEvent.requestPermission);
 
@@ -76,30 +68,40 @@ function setup() {
   
   cam = createCamera();
   setCamera(cam);
+  
+  flow = new FlowCalculator(48);
 }
 
 function draw() {
+  video.loadPixels();
+  if (video.pixels.length === 0) {
+    return;
+  }
+  
+  if (pPixels) {
+    if (same(pPixels, video.pixels, 4, width)) {
+      return;
+    }
+    flow.calculate(pPixels, video.pixels, video.width, video.height);
+  }
+  
   background(220);
-  //image(video,0,0);
+  image(video,0,0);
   
-  vel.x += 10*accelerationX;
-  vel.y += 10*accelerationY;
-  vel.z += 10*accelerationZ;
-  
-  pos.x = vel.x;
-  pos.y = vel.y;
-  pos.z = vel.z;
-  
-  text(`${pos.x},${pos.y},${pos.z}`)
-  
-  cam.setPosition(pos.x, pos.y, pos.z);
   cam.lookAt(0,0,0);
+  
+  if (flow.zones) {
+    for (const zone of flow.zones) {
+      
+    }
+  }
 
-  push();
-  translate(0,0,70);
-  //rotateY(rotationZ);
-  //rotateX(rotationX);
-  //rotateZ(rotationY);
-  box(70,70,70);
-  pop();
+  //push();
+  //translate(0,0,70);
+  ////rotateY(rotationZ);
+  ////rotateX(rotationX);
+  ////rotateZ(rotationY);
+  //box(70,70,70);
+  //pop();
+  
 }
