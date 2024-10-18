@@ -63,11 +63,9 @@ function setup() {
   };
   video = createCapture(constraints);
   video.hide();
-
-  normalMaterial();
   
-  cam = createCamera();
-  setCamera(cam);
+  //cam = createCamera();
+  //setCamera(cam);
   
   flow = new FlowCalculator(48);
 }
@@ -86,22 +84,37 @@ function draw() {
   }
   
   background(220);
+  translate(-width/2, -height/2);
   image(video,0,0);
   
-  cam.lookAt(0,0,0);
-  
+  //cam.lookAt(0,0,0);
   if (flow.zones) {
     for (const zone of flow.zones) {
-      
+      push();
+      translate(zone.pos.x, zone.pos.y);
+      rotate(zone.angle);
+      strokeWeight(2);
+      stroke(255);
+      line(0,0, zone.mag,0);
+      line(zone.mag,0, zone.mag-5,-5);
+      line(zone.mag,0, zone.mag-5,5);
+      pop();
     }
   }
-
-  //push();
-  //translate(0,0,70);
-  ////rotateY(rotationZ);
-  ////rotateX(rotationX);
-  ////rotateZ(rotationY);
-  //box(70,70,70);
-  //pop();
   
+  // copying what the library does, to find the nearest vector.
+  const winStep = 
+  const numX = floor((width-2*(flow.step+1))/(2*flow.step+1));
+
+  let closestX = round((100-flow.step-1)/(2*flow.step+1));
+  let closestY = round((100-flow.step-1)/(2*flow.step+1));
+  closestX = max(closestX, 0); closestY = max(closestY, 0);
+  closestX = min()
+  
+  push();
+  translate(0,0,70);
+  box(70,70,70);
+  pop();
+  
+  pPixels = copyImage(video.pixels, pPixels);
 }
