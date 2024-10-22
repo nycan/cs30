@@ -5,54 +5,47 @@
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
 
-let video;
-let font;
-let cam;
+let cnv; // Canvas
+let video; // Video capture
+let cam; // Camera for 3d rendering
+let camPos = { // Object for the camera's pos
+  x: 0,
+  y: 0,
+  z: 100
+};
+let camCenter = {
+  x: 0,
+  y: 0,
+  z: 0
+};
+const focalX = 50;
+const focalY = 50;
 
-let flow;
-let pPixels;
+// Matrices for the current and previous frame
+let currImg, prevImg;
+// Features in the current and previous frame
+let currFeats, prevFeats;
 
+let loaded = false; // whether openCV is loaded
 
-let hasSensorPermission = !(DeviceOrientationEvent.requestPermission || DeviceMotionEvent.requestPermission);
-
-function begPermission(){
-  if (DeviceOrientationEvent.requestPermission){
-    DeviceOrientationEvent.requestPermission()
-      .then(response => {
-        if (response === 'granted') {
-          if (DeviceMotionEvent.requestPermission){
-            DeviceMotionEvent.requestPermission()
-              .then(response => {
-                if (response === 'granted') {
-                  hasSensorPermission = true;
-                }
-              })
-              .catch(alert);
-          }
-        }
-      })
-      .catch(alert);
-  }
-}
-
-function touchEnded() {
-  if (!hasSensorPermission){
-    begPermission();
-  }
-}
-
-
-function preload() {
-  font = loadFont(
-    "https://cdnjs.cloudflare.com/ajax/libs/topcoat/0.8.0/font/SourceCodePro-Bold.otf"
+// Detect features in a frame
+function getFeatures() {
+  let features = new cv.Mat();
+  const maxFeatures = 128;
+  const minQuality = 0.01;
+  const minDistance = 10;
+  
+  cv.goodFeaturesToTrack(
+    currImg, features, maxFeatures, minQuality, minDistance
   );
+  cv.convertPointsToHomogenous(features, prevFeats);
 }
 
 function setup() {
-  createCanvas(windowWidth, windowHeight, WEBGL);
-  textFont(font, 25);
+  cnv = createCanvas(windowWidth, windowHeight, WEBGL);
   angleMode(RADIANS);
 
+  // Specify the back-facing camera
   const constraints = {
     audio: false,
     video: {
@@ -61,60 +54,99 @@ function setup() {
       }
     }
   };
-  video = createCapture(constraints);
+  //video = createCapture(constraints);
+  video = createCapture(VIDEO);
   video.hide();
   
-  //cam = createCamera();
-  //setCamera(cam);
+  cam = createCamera();
+  setCamera(cam);
+}
+
+// given a rotation matrix, apply it to the camera
+function applyRotMatrix(mat) {
+  let newX = camCenter.X*mat[0]+camCenter.Y*mat[1]+camCenter.Z*mat[2];
+  let newY = camCenter.X*mat[3]+camCenter.Y*mat[4]+camCenter.Z*mat[5];
+  let newZ = camCenter.X*mat[6]+camCenter.Y*mat[7]+camCenter.Z*mat[8];
   
-  flow = new FlowCalculator(48);
+  camCenter.x = newX;
+  camCenter.y = newY;
+  camCenter.z = newZ;
 }
 
 function draw() {
-  video.loadPixels();
-  if (video.pixels.length === 0) {
+  if (!loaded) {
     return;
-  }
-  
-  if (pPixels) {
-    if (same(pPixels, video.pixels, 4, width)) {
-      return;
-    }
-    flow.calculate(pPixels, video.pixels, video.width, video.height);
   }
   
   background(220);
   translate(-width/2, -height/2);
   image(video,0,0);
+  cnv.image(video,0,0); // extra line so that cnv.elt works
   
-  //cam.lookAt(0,0,0);
-  if (flow.zones) {
-    for (const zone of flow.zones) {
-      push();
-      translate(zone.pos.x, zone.pos.y);
-      rotate(zone.angle);
-      strokeWeight(2);
-      stroke(255);
-      line(0,0, zone.mag,0);
-      line(zone.mag,0, zone.mag-5,-5);
-      line(zone.mag,0, zone.mag-5,5);
-      pop();
-    }
+  // get frame matrix
+  
+  currImg = cv.imread(cnv.elt);
+  console.log(currImg);
+  cv.cvtColor(currImg, currImg, cv.COLOR_RGBA2GRAY);
+
+  if (!prevFeats) {
+    getFeatures();
+    return;
   }
   
-  // copying what the library does, to find the nearest vector.
-  const winStep = 
-  const numX = floor((width-2*(flow.step+1))/(2*flow.step+1));
-
-  let closestX = round((100-flow.step-1)/(2*flow.step+1));
-  let closestY = round((100-flow.step-1)/(2*flow.step+1));
-  closestX = max(closestX, 0); closestY = max(closestY, 0);
-  closestX = min()
+  // calculate optical flow for features
+  let status = new cv.Mat();
+  let err = new cv.Mat();
+  cv.calcOpticalFlowPyrLK(
+    prevImg, currImg, prevFeats, currFeats, status, err
+  );
+  
+  //https://en.wikipedia.org/wiki/Essential_matrix
+  const cameraMat = cv.matFromArray(3, 3, cv.CV_64F, [
+    focalX, 0, cnv.width/2,
+    0, focalY, cnv.height/2,
+    0, 0, 1
+  ]);
+  let essentialMat = cv.findEssentialMat(
+    prevFeats, currFeats, cameraMat
+  );
+  
+  // get transformations from essential matrix
+  let rot = new cv.Mat();
+  let trans = new cv.Mat();
+  cv.recoverPose(
+    essentialMat, prevFeats, currFeats, cameraMat,
+    rot, trans, new cv.Mat()
+  );
+  
+  // apply transformations
+  camPos.x += trans.data64F[0];
+  camPos.y += trans.data64F[1];
+  camPos.z += trans.data64F[2];
+  
+  applyRotMatrix(rot.data64F);
+  
+  cam.setPosition(camPos.x, camPos.y, camPos.z);
+  cam.lookAt(camCenter.x, camCenter.y, camCenter.z);
   
   push();
   translate(0,0,70);
   box(70,70,70);
   pop();
   
-  pPixels = copyImage(video.pixels, pPixels);
+  prevFeats = currFeats;
+  prevImg = currImg;
 }
+
+// load openCV (not my code)
+window.addEventListener("load", (event) => {
+  let script = document.createElement("script");
+  script.addEventListener("load", (event) => {
+    cv.onRuntimeInitialized = () => {
+      loaded = true;
+    };
+  });
+
+  script.src = "https://docs.opencv.org/4.x/opencv.js";
+  document.body.appendChild(script);
+});

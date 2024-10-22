@@ -31,7 +31,7 @@ function setup() {
     }
 
     blobs[rx][ry] = random(10);
-    queue.push([rx,ry]);
+    queue.push([0,[rx,ry]]);
   }
 
   // pretty redundant but convenient storage
@@ -40,8 +40,13 @@ function setup() {
   );
   for(let x = 0; x < int(width/tw); ++x) {
     for(let y = 0; y < int(height/tw); ++y) {
-      weights[x][y][0] = weights[x+1][y][2] = random()
+      weights[x][y][0] = weights[x+1][y][2] = random(100);
+      weights[x][y][1] = weights[x][y+1][3] = random(100);
     }
+  }
+
+  while(queue.length) {
+   let mn =  
   }
 }
 
