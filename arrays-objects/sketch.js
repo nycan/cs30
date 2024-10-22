@@ -5,7 +5,7 @@
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
 
-let cnv; // Canvas
+let grp; // For processing into openCV
 let video; // Video capture
 let cam; // Camera for 3d rendering
 let camPos = { // Object for the camera's pos
@@ -38,11 +38,12 @@ function getFeatures() {
   cv.goodFeaturesToTrack(
     currImg, features, maxFeatures, minQuality, minDistance
   );
-  cv.convertPointsToHomogenous(features, prevFeats);
+  cv.sfm.euclideanToHomogenous(features, prevFeats);
 }
 
 function setup() {
-  cnv = createCanvas(windowWidth, windowHeight, WEBGL);
+  createCanvas(windowWidth, windowHeight, WEBGL);
+  grp = createGraphics(width,height);
   angleMode(RADIANS);
 
   // Specify the back-facing camera
@@ -64,9 +65,9 @@ function setup() {
 
 // given a rotation matrix, apply it to the camera
 function applyRotMatrix(mat) {
-  let newX = camCenter.X*mat[0]+camCenter.Y*mat[1]+camCenter.Z*mat[2];
-  let newY = camCenter.X*mat[3]+camCenter.Y*mat[4]+camCenter.Z*mat[5];
-  let newZ = camCenter.X*mat[6]+camCenter.Y*mat[7]+camCenter.Z*mat[8];
+  let newX = camCenter.x*mat[0]+camCenter.y*mat[1]+camCenter.z*mat[2];
+  let newY = camCenter.x*mat[3]+camCenter.y*mat[4]+camCenter.z*mat[5];
+  let newZ = camCenter.x*mat[6]+camCenter.y*mat[7]+camCenter.z*mat[8];
   
   camCenter.x = newX;
   camCenter.y = newY;
@@ -81,11 +82,11 @@ function draw() {
   background(220);
   translate(-width/2, -height/2);
   image(video,0,0);
-  cnv.image(video,0,0); // extra line so that cnv.elt works
+  grp.image(video,0,0); // extra line so that cnv.elt works
   
   // get frame matrix
   
-  currImg = cv.imread(cnv.elt);
+  currImg = cv.imread(grp.elt);
   console.log(currImg);
   cv.cvtColor(currImg, currImg, cv.COLOR_RGBA2GRAY);
 
@@ -140,13 +141,17 @@ function draw() {
 
 // load openCV (not my code)
 window.addEventListener("load", (event) => {
+  console.log("The page has fully loaded");
+
   let script = document.createElement("script");
   script.addEventListener("load", (event) => {
+    console.log("opencv.js file has been loaded");
     cv.onRuntimeInitialized = () => {
+      console.log("onRuntimeInitialized");
       loaded = true;
     };
   });
 
-  script.src = "https://docs.opencv.org/4.x/opencv.js";
+  script.src = "https://docs.opencv.org/4.7.0/opencv.js";
   document.body.appendChild(script);
 });
