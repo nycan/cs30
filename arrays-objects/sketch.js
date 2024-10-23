@@ -28,17 +28,23 @@ let currFeats, prevFeats;
 
 let loaded = false; // whether openCV is loaded
 
+// https://en.wikipedia.org/wiki/Homogeneous_coordinates
+function convToHomogeneous() {
+
+}
+
 // Detect features in a frame
 function getFeatures() {
-  let features = new cv.Mat();
+  prevFeats = new cv.Mat();
   const maxFeatures = 128;
   const minQuality = 0.01;
   const minDistance = 10;
   
   cv.goodFeaturesToTrack(
-    currImg, features, maxFeatures, minQuality, minDistance
+    currImg, prevFeats, maxFeatures, minQuality, minDistance
   );
-  cv.sfm.euclideanToHomogenous(features, prevFeats);
+
+  //cv.convertPointsToHomogeneous(features, prevFeats);
 }
 
 function setup() {
@@ -75,68 +81,82 @@ function applyRotMatrix(mat) {
 }
 
 function draw() {
-  if (!loaded) {
-    return;
-  }
-  
   background(220);
   translate(-width/2, -height/2);
   image(video,0,0);
   grp.image(video,0,0); // extra line so that cnv.elt works
+
+  if (!loaded) {
+    return;
+  }
   
   // get frame matrix
-  
   currImg = cv.imread(grp.elt);
-  console.log(currImg);
   cv.cvtColor(currImg, currImg, cv.COLOR_RGBA2GRAY);
 
-  if (!prevFeats) {
+  if (prevFeats === undefined) {
+    console.log("bye");
     getFeatures();
     return;
   }
+  console.log("hi");
   
   // calculate optical flow for features
   let status = new cv.Mat();
   let err = new cv.Mat();
+  currImg.delete();
+  currFeats.delete();
+  currImg = new cv.Mat();
+  currFeats = new cv.Mat();
   cv.calcOpticalFlowPyrLK(
     prevImg, currImg, prevFeats, currFeats, status, err
   );
+  status.delete();
+  err.delete();
   
   //https://en.wikipedia.org/wiki/Essential_matrix
-  const cameraMat = cv.matFromArray(3, 3, cv.CV_64F, [
-    focalX, 0, cnv.width/2,
-    0, focalY, cnv.height/2,
-    0, 0, 1
-  ]);
-  let essentialMat = cv.findEssentialMat(
-    prevFeats, currFeats, cameraMat
-  );
+  //let essentialMat = cv.findEssentialMat(
+  //  prevFeats, currFeats, cameraMat
+  //);
   
   // get transformations from essential matrix
-  let rot = new cv.Mat();
-  let trans = new cv.Mat();
-  cv.recoverPose(
-    essentialMat, prevFeats, currFeats, cameraMat,
-    rot, trans, new cv.Mat()
-  );
+  //const cameraMat = cv.matFromArray(3, 3, cv.CV_64F, [
+  //  focalX, 0, grp.width/2,
+  //  0, focalY, grp.height/2,
+  //  0, 0, 1
+  //]); // https://en.wikipedia.org/wiki/Camera_matrix
+  //let rot = new cv.Mat();
+  //let trans = new cv.Mat();
+  //cv.recoverPose(
+  //  essentialMat, prevFeats, currFeats, cameraMat,
+  //  rot, trans, new cv.Mat()
+  //);
   
   // apply transformations
-  camPos.x += trans.data64F[0];
-  camPos.y += trans.data64F[1];
-  camPos.z += trans.data64F[2];
+  //camPos.x += trans.data64F[0];
+  //camPos.y += trans.data64F[1];
+  //camPos.z += trans.data64F[2];
   
-  applyRotMatrix(rot.data64F);
+  //applyRotMatrix(rot.data64F);
   
-  cam.setPosition(camPos.x, camPos.y, camPos.z);
-  cam.lookAt(camCenter.x, camCenter.y, camCenter.z);
+  //cam.setPosition(camPos.x, camPos.y, camPos.z);
+  //cam.lookAt(camCenter.x, camCenter.y, camCenter.z);
   
   push();
   translate(0,0,70);
   box(70,70,70);
   pop();
   
-  prevFeats = currFeats;
-  prevImg = currImg;
+  prevFeats.delete();
+  prevFeats = new cv.Mat();
+  currFeats.copyTo(prevFeats);
+
+  prevImg.delete();
+  prevImg = new cv.Mat();
+  currImg.copyTo(prevImg);
+  //rot.delete();
+  //trans.delete();
+  //cameraMat.delete();
 }
 
 // load openCV (not my code)
@@ -149,6 +169,9 @@ window.addEventListener("load", (event) => {
     cv.onRuntimeInitialized = () => {
       console.log("onRuntimeInitialized");
       loaded = true;
+
+      prevImg = new cv.Mat();
+      currFeats = new cv.Mat();
     };
   });
 
