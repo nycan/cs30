@@ -1,9 +1,13 @@
-// Project Title
-// Your Name
-// Date
+// Maze generator
+// N Young
+// Oct 24
 //
 // Extra for Experts:
-// - describe what you did to take this project "above and beyond"
+// DFS algorithm for maze generation
+//
+// Description:
+// Solve the maze. The end is the bottom-right corner
+// enter resets the maze. R brings you back to the start
 
 const SZ = 20;
 let xCells;
@@ -20,7 +24,8 @@ const CORNER_Y = [0,1,1,0];
 let player = {
   x: 0,
   y: 0
-}
+};
+let trails = [];
 
 // params:
 // x = x coord of the search
@@ -55,6 +60,7 @@ function dfs(x,y, dir) {
 
 // Starts the DFS
 function createMaze() {
+  visited = Array(xCells).fill().map((x) => Array(yCells).fill(false));
   dfs(0,0,0);
 }
 
@@ -66,7 +72,6 @@ function setup() {
   xCells = floor(width/SZ);
   yCells = floor(height/SZ);
 
-  visited = Array(xCells).fill().map((x) => Array(yCells).fill(false));
   maze = Array(xCells).fill().map(
     (x) => Array(yCells).fill([false,false,false,false])
   );
@@ -94,13 +99,69 @@ function drawMaze() {
   }
 }
 
+function drawTrails() {
+  // Show the player if they've won
+  if(player.x === xCells-1 && player.y === yCells-1) {
+    stroke("green");
+  }
+  else {
+    stroke("red");
+  }
+
+  let pos = {x:0,y:0};
+  pos.x = SZ*player.x+SZ/2;
+  pos.y = SZ*player.y+SZ/2;
+
+  for(let i = trails.length-1; i>=0; --i) {
+    let nx = pos.x+DX[(trails[i]+2)%4]*SZ;
+    let ny = pos.y+DY[(trails[i]+2)%4]*SZ;
+
+    line(pos.x,pos.y,nx,ny);
+    
+    pos.x = nx;
+    pos.y = ny;
+  }
+
+  stroke("black");
+}
+
+function draw() {
+  background(220);
+  drawMaze();
+  drawTrails();
+
+  // draw the player
+  strokeWeight(0);
+  circle(SZ*player.x+SZ/2,SZ*player.y+SZ/2,10);
+  strokeWeight(4);
+}
+
+function handleSpecialKeys() {
+  if (keyCode === ENTER) {
+    createMaze();
+    player = {x:0, y:0};
+    trails = [];
+  }
+  else if (key === "r") {
+    player = {x:0, y: 0};
+    trails = [];
+  }
+}
+
 function keyPressed() {
+  handleSpecialKeys();
+
+  // keep people at the end
+  if (player.x === xCells-1 & player.y === yCells-1) {
+    return;
+  }
+
   const keys = {
     d: 0,
     s: 1,
     a: 2,
     w: 3
-  }
+  };
   let dir = keys[key];
   
   if(dir === undefined) {
@@ -114,14 +175,12 @@ function keyPressed() {
   
   player.x += DX[dir];
   player.y += DY[dir];
-}
 
-function draw() {
-  background(220);
-  drawMaze();
-  
-  // draw the player
-  strokeWeight(0);
-  circle(SZ*player.x+SZ/2,SZ*player.y+SZ/2,10);
-  strokeWeight(4);
+  // if the player backs out of a path, dont keep it in the trail
+  if(trails[trails.length-1] === (dir+2)%4) {
+    trails.pop();
+  }
+  else {
+    trails.push(dir);
+  }
 }
