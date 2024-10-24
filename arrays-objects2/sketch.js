@@ -5,7 +5,7 @@
 // Extra for Experts:
 // - describe what you did to take this project "above and beyond"
 
-const SZ = 20;
+const SZ = 100;
 let xCells;
 let yCells;
 
@@ -28,18 +28,26 @@ function dfs(x,y, dir) {
   let linesToMake = [true,true,true,true];
   linesToMake[(dir+2)%4] = false;
 
-  for (let i = 0; i<4; ++i) {
+  let dirsLeft = [0,1,2,3];
+
+  console.log(x,y);
+  for (let j = 0; j<4; ++j) {
+    i = random(dirsLeft.filter((x)=>x>=0));
+    dirsLeft[i] = -1;
     let nx = x+DX[i];
     let ny = y+DY[i];
 
     if (0<=nx && nx<xCells && 0<=ny && ny<yCells) {
       if (!visited[nx][ny]) {
+        console.log(i);
         dfs(nx, ny, i);
         // dont make a line where we search
         linesToMake[i] = false;
       }
     }
   }
+
+  console.log(linesToMake);
 
   // add the lines to the array
   for (let i = 0; i<4; ++i) {
@@ -81,7 +89,7 @@ function drawMaze() {
     let x1 = ln.x+CORNER_X[ln.dir];
     let y1 = ln.y+CORNER_Y[ln.dir];
     let x2 = ln.x+CORNER_X[(ln.dir+1)%4];
-    let y2 = ln.x+CORNER_X[(ln.dir+1)%4];
+    let y2 = ln.y+CORNER_Y[(ln.dir+1)%4];
     line(x1*SZ,y1*SZ,x2*SZ,y2*SZ);
   }
 }
