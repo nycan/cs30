@@ -36,20 +36,28 @@ function setup() {
 
   cam = createCamera();
   setCamera(cam);
+  perspective(2*atan(height / 1600),width/height,10);
+  strokeWeight(0.1);
 
   noCursor();
 }
 
 function moveCamera() {
-  const angles = [0, PI/2, PI, -PI/2];
+  const angles = [PI, -PI/2, 0, PI/2];
   const keys = [87,65,83,68]; // wasd
 
   for (let i = 0; i<4; ++i) {
     if (keyIsDown(keys[i])) {
-      me.x += speed*sin(me.az+angles[i]);
-      me.z += speed*cos(me.az+angles[i]);
+      const dx = speed*sin(me.az+angles[i]);
+      const dz = speed*cos(me.az+angles[i]);
+
+      me.x += dx;
+      me.z += dz;
+      cam.lookAt(cam.centerX+dx,cam.centerY,cam.centerZ+dz);
     }
   }
+
+  cam.setPosition(me.x, me.y, me.z);
 }
 
 function calculateRot() {
@@ -62,18 +70,15 @@ function calculateRot() {
 }
 
 function draw() {
-  console.log(me.ax,me.az);
   background(220);
 
+  calculateRot();
   moveCamera();
 
-  cam.setPosition(me.x,me.y,me.z);
-  calculateRot();
-
   push();
-  translate(0,15,0);
+  translate(0,10,0);
   rotate(PI/2,[1,0,0]);
-  plane(100,100);
+  plane(1000,1000);
   pop();
 
   for (const player of guests) {
