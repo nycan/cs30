@@ -16,12 +16,12 @@ let cam;
 let me;
 let guests;
 
-const speed = 1.5;
+const speed = 60;
 const sensitivity = 0.01;
 
 const cellSize = 40;
-const xCells = 30;
-const yCells = 30;
+const xCells = 25;
+const zCells = 25;
 
 const DX = [1,0,-1,0];
 const DY = [0,1,0,-1];
@@ -44,7 +44,7 @@ function dfs(x, y, dir) {
     let nx = x+DX[i];
     let ny = y+DY[i];
 
-    if (0<=nx && nx<xCells && 0<=ny && ny<yCells) {
+    if (0<=nx && nx<xCells && 0<=ny && ny<zCells) {
       if (!visited[nx][ny]) {
         dfs(nx, ny, i);
         // dont make a line where we search
@@ -59,7 +59,7 @@ function dfs(x, y, dir) {
 
 // Starts the DFS
 function createMaze() {
-  visited = Array(xCells).fill().map((x) => Array(yCells).fill(false));
+  visited = Array(xCells).fill().map((x) => Array(zCells).fill(false));
   dfs(0,0,0);
   maze[0][0][0] = false;
 }
@@ -79,6 +79,15 @@ function preload() {
 function doubleClicked() {
   // has to have some input first
   requestPointerLock();
+  if (locked) {
+    return;
+  }
+
+  me.x = (0.5+floor(random(-xCells/2,xCells/2)))*cellSize;
+  me.z = (0.5+floor(random(-zCells/2,zCells/2)))*cellSize;
+  cam.setPosition(me.x,me.y,me.z);
+  cam.lookAt(me.x,me.y,me.z+800);
+
   locked = true;
 }
 
@@ -88,25 +97,26 @@ function setup() {
   cam = createCamera();
   setCamera(cam);
   // allow objects closer to the camera than default
-  perspective(2*atan(height / 1600),width/height,10);
+  perspective(2*atan(height / 1600),width/height,10,1000);
   strokeWeight(0.1);
 
   noCursor();
 
   maze = Array(xCells).fill().map(
-    (x) => Array(yCells).fill([false,false,false,false])
+    (x) => Array(zCells).fill([false,false,false,false])
   );
   createMaze();
 }
 
 function moveCamera() {
-  const angles = [PI, -PI/2, 0, PI/2];
+  const angles = [0, PI/2, PI, -PI/2];
   const keys = [87,65,83,68]; // wasd
 
   for (let i = 0; i<4; ++i) {
     if (keyIsDown(keys[i])) {
-      const dx = speed*sin(me.az+angles[i]);
-      const dz = speed*cos(me.az+angles[i]);
+      let ang = -atan((cam.centerX-cam.eyeX)/(cam.centerZ-cam.eyeZ));
+      const dx = speed*sin(ang+angles[i])/frameRate();
+      const dz = speed*cos(ang+angles[i])/frameRate();
 
       me.x += dx;
       me.z += dz;
@@ -126,12 +136,13 @@ function calculateRot() {
 
   cam.pan(-movedX*sensitivity);
   me.az -= movedX*sensitivity;
+  me.az %= 2*PI;
 }
 
 // draw all the lines
 function drawMaze() {
   for(let x = 0; x<xCells; ++x) {
-    for(let y = 0; y<yCells; ++y) {
+    for(let y = 0; y<zCells; ++y) {
       for(let i = 0; i<4; ++i) {
         // don't draw a line for a valid route
         if(maze[x][y][i]) {
@@ -149,7 +160,7 @@ function drawMaze() {
         translate(
           cellSize*(-xCells/2 + x + 1/2 + DX[i]/2),
           0,
-          cellSize*(-yCells/2 + y + 1/2 + DY[i]/2)
+          cellSize*(-zCells/2 + y + 1/2 + DY[i]/2)
         );
         rotate(PI/2 * (1-i%2), [0,1,0]); // rotate for the directions that need it
         plane(cellSize, 20);
@@ -171,7 +182,7 @@ function draw() {
   push();
   translate(0,10,0);
   rotate(PI/2,[1,0,0]);
-  plane(xCells*cellSize,yCells*cellSize);
+  plane(xCells*cellSize,zCells*cellSize);
   pop();
 
   drawMaze();
