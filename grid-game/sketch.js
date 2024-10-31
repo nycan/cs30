@@ -61,6 +61,7 @@ function dfs(x, y, dir) {
 function createMaze() {
   visited = Array(xCells).fill().map((x) => Array(yCells).fill(false));
   dfs(0,0,0);
+  maze[0][0][0] = false;
 }
 
 function preload() {
@@ -135,6 +136,12 @@ function drawMaze() {
         // don't draw a line for a valid route
         if(maze[x][y][i]) {
           continue;
+        }
+        // don't draw if we drew it already
+        if(i>=2 && !maze[x+DX[i]]?.[y+DY[i]]) {
+          if (x+DX[i]>=0 && y+DY[i]>=0) {
+            continue;
+          }
         }
         
         push();
