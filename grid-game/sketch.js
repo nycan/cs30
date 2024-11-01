@@ -114,9 +114,8 @@ function moveCamera() {
 
   for (let i = 0; i<4; ++i) {
     if (keyIsDown(keys[i])) {
-      let ang = -atan((cam.centerX-cam.eyeX)/(cam.centerZ-cam.eyeZ));
-      const dx = speed*sin(ang+angles[i])/frameRate();
-      const dz = speed*cos(ang+angles[i])/frameRate();
+      const dx = speed*sin(me.az+angles[i])/frameRate();
+      const dz = speed*cos(me.az+angles[i])/frameRate();
 
       me.x += dx;
       me.z += dz;
@@ -126,17 +125,19 @@ function moveCamera() {
   }
 
   cam.setPosition(me.x, me.y, me.z);
+  console.log(me.ax);
 }
 
 function calculateRot() {
-  // no breaking your neck!
-  let next = constrain(movedY*sensitivity+me.ax,-PI/2,PI/2);
-  cam.tilt(next-me.ax);
-  me.ax = next;
-
+  cam.tilt(-me.ax); // we dont want to rotate on the wrong plane
   cam.pan(-movedX*sensitivity);
   me.az -= movedX*sensitivity;
   me.az %= 2*PI;
+
+  // no breaking your neck!
+  let next = constrain(movedY*sensitivity+me.ax,-PI/4,PI/4);
+  cam.tilt(next);
+  me.ax = next;
 }
 
 // draw all the lines
