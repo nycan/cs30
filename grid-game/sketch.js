@@ -16,6 +16,9 @@ let me;
 let guests;
 let shared;
 
+let xp;
+let meXP;
+
 const speed = 60;
 const sensitivity = 0.01;
 
