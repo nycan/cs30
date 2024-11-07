@@ -159,11 +159,11 @@ function checkCollision(dx, dz) {
 
   let corners = {
     x: Array(4).fill().map((x,i) =>
-        playerWidth/2*(CORNER_X[i]*cos(me.az)-CORNER_Z[i]*sin(me.az))+me.x
+      playerWidth/2*(CORNER_X[i]*cos(me.az)-CORNER_Z[i]*sin(me.az))+me.x
     ),
     z: Array(4).fill().map((x,i) =>
-        playerWidth/2*(CORNER_X[i]*sin(me.az)+CORNER_Z[i]*cos(me.az))+me.z
-      )
+      playerWidth/2*(CORNER_X[i]*sin(me.az)+CORNER_Z[i]*cos(me.az))+me.z
+    )
   };
 
   // get their maze coordinates
@@ -190,7 +190,7 @@ function movePlayer() {
       dx += speed*sin(me.rot+angles[i])/frameRate();
       dz += speed*cos(me.rot+angles[i])/frameRate();
 
-      perp += (i%2)+1;
+      perp += i%2+1;
     }
   }
 
@@ -213,15 +213,32 @@ function movePlayer() {
 }
 
 function calculateRot() {
-  cam.tilt(-me.tilt); // we dont want to rotate on the wrong plane
-  cam.pan(-movedX*sensitivity);
+  //cam.tilt(-me.tilt); // we dont want to rotate on the wrong plane
+  //cam.pan(-movedX*sensitivity);
   me.rot -= movedX*sensitivity;
   me.rot %= 2*PI;
 
   // no breaking your neck!
   let next = constrain(movedY*sensitivity+me.tilt,-PI/2+0.1,PI/2-0.1);
-  cam.tilt(next);
+  //cam.tilt(next);
   me.tilt = next;
+
+  // this has no documentation but exists???
+  let rotMat = new p5.Matrix('mat3');
+  rotMat.rotate(-movedX*sensitivity, [0,1,0]);
+  let res = multMatVec(rotMat, cam.centerX, cam.centerY, cam.centerZ);
+
+  let tiltMat = new p5.Matrix('mat3');
+  tiltMat.rotate(next-me.tilt, res[2], 0, res[0]); // axis is perp to forward
+  res = multMatVec(tiltMat, res[0], res[1], res[2]);
+}
+
+function multMatVec(rotation, centerX, centerY, centerZ) {
+  return [
+    centerX * rotation.mat3[0] + centerY * rotation.mat3[3] + centerZ * rotation.mat3[6],
+    centerX * rotation.mat3[1] + centerY * rotation.mat3[4] + centerZ * rotation.mat3[7],
+    centerX * rotation.mat3[2] + centerY * rotation.mat3[5] + centerZ * rotation.mat3[8]
+  ];
 }
 
 // draw all the lines
@@ -261,7 +278,8 @@ function drawPlayers() {
       continue;
     }
 
-    fill(player.colour);
+    ambientMaterial(player.colour);
+    specularMaterial(player.colour);
     
     // body
     push();
