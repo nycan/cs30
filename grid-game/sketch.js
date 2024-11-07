@@ -19,20 +19,37 @@ let shared;
 let xp;
 let meXP;
 
-const speed = 60;
+const speed = 80;
 const sensitivity = 0.01;
 
 const cellSize = 40;
-const xCells = 25;
-const zCells = 25;
+const xCells = 20;
+const zCells = 20;
 
-const DX = [1,0,-1,0];
-const DY = [0,1,0,-1];
+const dirX = [1,0,-1,0];
+const dirZ = [0,1,0,-1];
 
-const playerWidth = 15;
-const playerBody = 12; // body height
+const playerWidth = 10;
+const playerBody = 17; // body height
 const playerHead = 6; // head height
-const wallHeight = 20;
+const wallHeight = 30;
+
+const maxXP = 100;
+const maxXPrad = 15;
+const minXPrad = 3;
+
+const colours = [
+  "burlywood",
+  "cadetblue",
+  "chocolate",
+  "darkgoldenrod",
+  "darkolivegreen",
+  "firebrick",
+  "orchid",
+  "orange",
+  "pink",
+  "slategrey"
+];
 
 // params:
 // x = x coord of the search
@@ -42,15 +59,17 @@ function dfs(x, y, dir) {
   visited[x][y] = true;
   // at the start, make all lines except where we came from
   let validRoute = [false,false,false,false];
-  validRoute[(dir+2)%4] = true;
+  if (x !== 0 || y!== 0) {
+    validRoute[(dir+2)%4] = true;
+  }
 
   let dirsLeft = [0,1,2,3];
 
   for (let j = 0; j<4; ++j) {
     let i = random(dirsLeft.filter((x)=>x>=0));
     dirsLeft[i] = -1;
-    let nx = x+DX[i];
-    let ny = y+DY[i];
+    let nx = x+dirX[i];
+    let ny = y+dirZ[i];
 
     if (0<=nx && nx<xCells && 0<=ny && ny<zCells) {
       if (!visited[nx][ny]) {
@@ -69,7 +88,6 @@ function dfs(x, y, dir) {
 function createMaze() {
   visited = Array(xCells).fill().map((x) => Array(zCells).fill(false));
   dfs(0,0,0);
-  shared.maze[0][0][2] = false;
 }
 
 function preload() {
@@ -80,7 +98,11 @@ function preload() {
 
   //shared = partyLoadShared("shared", shared);
   // position and camera rotation
-  me = partyLoadMyShared({x: 0, y: -5, z: 0, tilt: 0, rot: 0});
+  me = partyLoadMyShared({
+    x: 0, y: -5, z: 0,
+    tilt: 0, rot: 0,
+    colour: random(colours)
+  });
   guests = partyLoadGuestShareds();
   shared = partyLoadShared("shared");
 }
@@ -117,25 +139,77 @@ function setup() {
     );
     createMaze();
   }
+
+  xp = Array(xCells).fill().map(
+    (x) => Array(zCells).fill(0)
+  );
+  setInterval(spawnXP, 200);
 }
 
-function moveCamera() {
+function spawnXP() {
+  let randX = floor(random(xCells));
+  let randZ = floor(random(zCells));
+
+  xp[randX][randZ] = min(xp[randX][randZ]+1, maxXP);
+}
+
+function checkCollision(dx, dz) {
+  const CORNER_X = [1,1,-1,-1];
+  const CORNER_Z = [-1,1,1,-1];
+
+  let corners = {
+    x: Array(4).fill().map((x,i) =>
+        playerWidth/2*(CORNER_X[i]*cos(me.az)-CORNER_Z[i]*sin(me.az))+me.x
+    ),
+    z: Array(4).fill().map((x,i) =>
+        playerWidth/2*(CORNER_X[i]*sin(me.az)+CORNER_Z[i]*cos(me.az))+me.z
+      )
+  };
+
+  // get their maze coordinates
+  let cell = {
+    x: floor((me.x+cellSize*xCells/2)/cellSize),
+    z: floor((me.z+cellSize*zCells/2)/cellSize)
+  }
+  if (cell.x<0 || cell.x>=xCells || cell.z<0 || cell.z>=zCells) {
+    return {x: dx, z: dz}; // they found a way to escape!
+  }
+}
+
+function movePlayer() {
   const angles = [0, PI/2, PI, -PI/2];
   const keys = [87,65,83,68]; // wasd
 
+  let dx = 0;
+  let dz = 0;
+
+  let perp = 0;
+
   for (let i = 0; i<4; ++i) {
     if (keyIsDown(keys[i])) {
-      const dx = speed*sin(me.rot+angles[i])/frameRate();
-      const dz = speed*cos(me.rot+angles[i])/frameRate();
+      dx += speed*sin(me.rot+angles[i])/frameRate();
+      dz += speed*cos(me.rot+angles[i])/frameRate();
 
-      me.x += dx;
-      me.z += dz;
-      // we have to change where we look too or we'll rotate
-      cam.lookAt(cam.centerX+dx,cam.centerY,cam.centerZ+dz);
+      perp += (i%2)+1;
     }
   }
 
+  // only way to get perp = 3 is to have 2 perpendicular directions
+  if (perp === 3) {
+    // make it so that diagonal is the same speed
+    dx /= sqrt(2);
+    dz /= sqrt(2);
+  }
+
+  //checkCollision(dx,dz);
+  //let final = checkCollision(dx, dz);
+  let final = {x: dx, z: dz};
+
+  me.x += final.x;
+  me.z += final.z;
   cam.setPosition(me.x, me.y, me.z);
+  // we have to change where we look too or we'll rotate
+  cam.lookAt(cam.centerX+final.z,cam.centerY,cam.centerZ+final.z);
 }
 
 function calculateRot() {
@@ -160,8 +234,8 @@ function drawMaze() {
           continue;
         }
         // don't draw if we drew it already
-        if(i>=2 && !shared.maze[x+DX[i]]?.[y+DY[i]]) {
-          if (x+DX[i]>=0 && y+DY[i]>=0) {
+        if(i>=2 && !shared.maze[x+dirX[i]]?.[y+dirZ[i]]) {
+          if (x+dirX[i]>=0 && y+dirZ[i]>=0) {
             continue;
           }
         }
@@ -169,9 +243,9 @@ function drawMaze() {
         push();
         // move to the middle of the cell and then to the side
         translate(
-          cellSize*(-xCells/2 + x + 1/2 + DX[i]/2),
+          cellSize*(-xCells/2 + x + 1/2 + dirX[i]/2),
           0,
-          cellSize*(-zCells/2 + y + 1/2 + DY[i]/2)
+          cellSize*(-zCells/2 + y + 1/2 + dirZ[i]/2)
         );
         rotate(PI/2 * (1-i%2), [0,1,0]); // rotate for the directions that need it
         plane(cellSize, wallHeight);
@@ -181,13 +255,88 @@ function drawMaze() {
   }
 }
 
+function drawPlayers() {
+  for (const player of guests) {
+    if (player === me) {
+      continue;
+    }
+
+    fill(player.colour);
+    
+    // body
+    push();
+    translate(player.x, player.y+playerHead/2+playerBody/2, player.z);
+    rotateY(player.rot);
+    box(playerWidth, playerBody, playerWidth);
+    pop();
+
+    // head
+    push();
+    translate(player.x,player.y,player.z);
+    rotateY(player.rot);
+    rotateX(-player.tilt);
+    box(playerHead);
+    pop();
+
+    fill("white");
+  }
+}
+
+function lightScene() {
+  noLights();
+  ambientLight(20);
+
+  for (const player of guests) {
+    spotLight(
+      color(150),
+      player.x,player.y,player.z,
+      sin(player.rot),sin(player.tilt),cos(player.rot),
+      PI/3, 50
+    );
+  }
+}
+
+function drawXP() {
+  emissiveMaterial(34, 240, 54);
+  specularMaterial(255);
+  shininess(10);
+  for(let i = 0; i<xCells; ++i) {
+    for(let j = 0; j<zCells; ++j) {
+      if (!xp[i][j]) {
+        continue;
+      }
+      let rad = lerp(1,maxXPrad, xp[i][j]/maxXP);
+
+      push();
+      translate(
+        cellSize*(-xCells/2 + i + 1/2),
+        wallHeight/2-rad,
+        cellSize*(-zCells/2 + j + 1/2)
+      );
+      sphere(rad);
+      pop();
+    }
+  }
+  emissiveMaterial(0);
+  specularMaterial(0);
+  shininess(0);
+}
+
 function draw() {
-  background(220);
+  background(33, 54, 63);
 
   if (locked) {
     calculateRot();
-    moveCamera();
+    movePlayer();
   }
+
+  lightScene();
+  
+  drawXP();
+
+  noStroke();
+  ambientMaterial(255);
+  specularMaterial(150);
 
   // floor
   push();
@@ -197,18 +346,11 @@ function draw() {
   pop();
 
   drawMaze();
+  drawPlayers();
+}
 
-  // players
-  for (const player of guests) {
-    push();
-    translate(player.x, player.y+playerHead/2+playerBody/2, player.z);
-    box(playerWidth, bodyHeight, playerWidth);
-    pop();
-    push();
-    translate(player.x,player.y,player.z);
-    rotateZ(player.tilt);
-    rotateY(player.rot);
-    box(playerHead);
-    pop();
+function keyPressed() {
+  if (key === "r" && partyIsHost()) {
+    createMaze();
   }
 }
