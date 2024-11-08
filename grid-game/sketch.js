@@ -127,6 +127,8 @@ function setup() {
 
   cam = createCamera();
   setCamera(cam);
+  cam.setPosition(0,20,0);
+  cam.lookAt(0,0,0);
   // allow objects closer to the camera than default
   perspective(2*atan(height / 1600),width/height,10,1000);
   strokeWeight(0.1);
@@ -177,8 +179,8 @@ function checkCollision(dx, dz) {
 }
 
 function movePlayer() {
-  const angles = [0, PI/2, PI, -PI/2];
-  const keys = [87,65,83,68]; // wasd
+  //const angles = [0, PI/2, PI, -PI/2];
+  const keys = [68,83,65,87]; // dsaw
 
   let dx = 0;
   let dz = 0;
@@ -187,8 +189,8 @@ function movePlayer() {
 
   for (let i = 0; i<4; ++i) {
     if (keyIsDown(keys[i])) {
-      dx += speed*sin(me.rot+angles[i])/frameRate();
-      dz += speed*cos(me.rot+angles[i])/frameRate();
+      dx += speed*dirX[i]/frameRate();
+      dz += speed*dirZ[i]/frameRate();
 
       perp += i%2+1;
     }
@@ -200,45 +202,30 @@ function movePlayer() {
     dx /= sqrt(2);
     dz /= sqrt(2);
   }
+  
+  cam.tilt(-me.tilt);
+  cam.move(dx,0,dz);
+  cam.tilt(me.tilt);
 
   //checkCollision(dx,dz);
   //let final = checkCollision(dx, dz);
   let final = {x: dx, z: dz};
 
-  me.x += final.x;
-  me.z += final.z;
-  cam.setPosition(me.x, me.y, me.z);
-  // we have to change where we look too or we'll rotate
-  cam.lookAt(cam.centerX+final.z,cam.centerY,cam.centerZ+final.z);
+  me.x = cam.eyeX;
+  me.z = cam.eyeZ;
 }
 
 function calculateRot() {
-  //cam.tilt(-me.tilt); // we dont want to rotate on the wrong plane
-  //cam.pan(-movedX*sensitivity);
+  cam.tilt(-me.tilt); // we dont want to rotate on the wrong plane
+  
+  cam.pan(-movedX*sensitivity);
   me.rot -= movedX*sensitivity;
   me.rot %= 2*PI;
 
   // no breaking your neck!
   let next = constrain(movedY*sensitivity+me.tilt,-PI/2+0.1,PI/2-0.1);
-  //cam.tilt(next);
+  cam.tilt(next);
   me.tilt = next;
-
-  // this has no documentation but exists???
-  let rotMat = new p5.Matrix('mat3');
-  rotMat.rotate(-movedX*sensitivity, [0,1,0]);
-  let res = multMatVec(rotMat, cam.centerX, cam.centerY, cam.centerZ);
-
-  let tiltMat = new p5.Matrix('mat3');
-  tiltMat.rotate(next-me.tilt, res[2], 0, res[0]); // axis is perp to forward
-  res = multMatVec(tiltMat, res[0], res[1], res[2]);
-}
-
-function multMatVec(rotation, centerX, centerY, centerZ) {
-  return [
-    centerX * rotation.mat3[0] + centerY * rotation.mat3[3] + centerZ * rotation.mat3[6],
-    centerX * rotation.mat3[1] + centerY * rotation.mat3[4] + centerZ * rotation.mat3[7],
-    centerX * rotation.mat3[2] + centerY * rotation.mat3[5] + centerZ * rotation.mat3[8]
-  ];
 }
 
 // draw all the lines
