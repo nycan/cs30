@@ -7,7 +7,8 @@
 
 let locked = false;
 
-let visited;
+let dsu;
+let dsuSize;
 
 let playerID;
 let cam;
@@ -51,43 +52,87 @@ const colours = [
   "slategrey"
 ];
 
-// params:
-// x = x coord of the search
-// y = y coord of the search
-// dir = direction used to reach here
-function dfs(x, y, dir) {
-  visited[x][y] = true;
-  // at the start, make all lines except where we came from
-  let validRoute = [false,false,false,false];
-  if (x !== 0 || y!== 0) {
-    validRoute[(dir+2)%4] = true;
+// search up "disjoint set union"
+function find(n) {
+  if (dsu[n[0]][n[1]]===n) {
+    return n;
+  }
+  return dsu[n[0]][n[1]] = find(dsu[n[0]][n[1]]);
+}
+
+// dont let bezos see this
+function unionize(a, b) {
+  a = find(a);
+  b = find(b);
+  if (a===b) {
+    return false;
   }
 
-  let dirsLeft = [0,1,2,3];
+  // js doesn't have a built-in swap function :(
+  if (dsuSize[a[0]][a[1]]<dsuSize[b[0]][b[1]]) {
+    dsu[a[0]][a[1]] = b;
+    dsuSize[b[0]][b[1]] += dsuSize[a[0]][a[1]];
+  } else {
+    dsu[b[0]][b[1]] = a;
+    dsuSize[a[0]][a[1]] += dsuSize[b[0]][b[1]];
+  }
 
-  for (let j = 0; j<4; ++j) {
-    let i = random(dirsLeft.filter((x)=>x>=0));
-    dirsLeft[i] = -1;
-    let nx = x+dirX[i];
-    let ny = y+dirZ[i];
+  return true;
+}
 
-    if (0<=nx && nx<xCells && 0<=ny && ny<zCells) {
-      if (!visited[nx][ny]) {
-        dfs(nx, ny, i);
-        // dont make a line where we search
-        validRoute[i] = true;
+// MST with random weights != random tree but wilsons algo is too slow
+function createMaze() {
+  // populate the arrays
+  shared.maze = Array.from({length: xCells}, ()=>
+    Array.from({length: zCells}, ()=>
+      Array.from([false,false,false,false])
+    )
+  );
+  dsu = Array(xCells).fill().map( (x,i) =>
+    Array(zCells).fill().map((y,j)=> [i,j])
+  );
+  dsuSize = Array.from({length: xCells}, ()=>
+    Array.from({length: zCells}, ()=>1)
+  );
+
+  // assign random weights
+  let edges = [];
+  for (let i = 0; i<xCells; ++i) {
+    for (let j = 0; j<zCells; ++j) {
+      if (i<xCells-1) {
+        edges.push({
+          x: i,
+          z: j,
+          dir: 0,
+          weight: random()
+        });
+      }
+
+      if (j<zCells-1) {
+        edges.push({
+          x: i,
+          z: j,
+          dir: 1,
+          weight: random()
+        });
       }
     }
   }
 
-  // update the maze
-  shared.maze[x][y] = validRoute;
-}
+  // sort
+  edges.sort((a,b) => a.weight-b.weight);
 
-// Starts the DFS
-function createMaze() {
-  visited = Array(xCells).fill().map((x) => Array(zCells).fill(false));
-  dfs(0,0,0);
+  // join the next smallest edge if it adds a new element to the tree
+  for (const edge of edges) {
+    let nx = edge.x + dirX[edge.dir];
+    let nz = edge.z + dirZ[edge.dir];
+
+    if (unionize([edge.x,edge.z],[nx,nz])) {
+      console.log(edge);
+      shared.maze[edge.x][edge.z][edge.dir] = true;
+      shared.maze[nx][nz][(edge.dir+2)%4] = true;
+    }
+  }
 }
 
 function preload() {
@@ -136,16 +181,13 @@ function setup() {
   noCursor();
 
   if(!shared.maze) {
-    shared.maze = Array(xCells).fill().map(
-      (x) => Array(zCells).fill([false,false,false,false])
-    );
     createMaze();
   }
 
   xp = Array(xCells).fill().map(
     (x) => Array(zCells).fill(0)
   );
-  setInterval(spawnXP, 200);
+  setInterval(spawnXP, 400);
 }
 
 function spawnXP() {
@@ -356,6 +398,10 @@ function draw() {
 
 function keyPressed() {
   if (key === "r" && partyIsHost()) {
+    xp = Array(xCells).fill().map(
+      (x) => Array(zCells).fill(0)
+    );
+
     createMaze();
   }
 }

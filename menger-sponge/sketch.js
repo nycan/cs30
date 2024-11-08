@@ -13,7 +13,7 @@ function setup() {
 
 function menger(n) {
   console.log(n);
-  if (n === 1) {
+  if (n === 0) {
     box(sz);
     return;
   }
