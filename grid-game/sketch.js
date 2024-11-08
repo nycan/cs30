@@ -19,6 +19,7 @@ let shared;
 
 let xp;
 let meXP;
+let xpSpawner;
 
 const speed = 80;
 const sensitivity = 0.01;
@@ -38,6 +39,7 @@ const wallHeight = 30;
 const maxXP = 100;
 const maxXPrad = 15;
 const minXPrad = 3;
+const xpInterval = 800;
 
 const colours = [
   "burlywood",
@@ -128,7 +130,6 @@ function createMaze() {
     let nz = edge.z + dirZ[edge.dir];
 
     if (unionize([edge.x,edge.z],[nx,nz])) {
-      console.log(edge);
       shared.maze[edge.x][edge.z][edge.dir] = true;
       shared.maze[nx][nz][(edge.dir+2)%4] = true;
     }
@@ -146,7 +147,8 @@ function preload() {
   me = partyLoadMyShared({
     x: 0, y: -5, z: 0,
     tilt: 0, rot: 0,
-    colour: random(colours)
+    colour: random(colours),
+    active: false
   });
   guests = partyLoadGuestShareds();
   shared = partyLoadShared("shared");
@@ -155,16 +157,25 @@ function preload() {
 function doubleClicked() {
   // has to have some input first
   requestPointerLock();
-  if (locked) {
+  if (me.active) {
     return;
   }
 
-  me.x = (0.5+floor(random(-xCells/2,xCells/2)))*cellSize;
-  me.z = (0.5+floor(random(-zCells/2,zCells/2)))*cellSize;
+  me.x = (-xCells/2 + 0.5 + floor(random(xCells/2)))*cellSize;
+  me.z = (-zCells/2 + 0.5 + floor(random(zCells/2)))*cellSize;
   cam.setPosition(me.x,me.y,me.z);
   cam.lookAt(me.x,me.y,me.z+800); // keep center relative to eye
 
-  locked = true;
+  xpSpawner = setInterval(spawnXP, 400);
+
+  me.active = true;
+}
+
+function spawnXP() {
+  let randX = floor(random(xCells));
+  let randZ = floor(random(zCells));
+
+  shared.xp[randX][randZ] = min(shared.xp[randX][randZ]+1, maxXP);
 }
 
 function setup() {
@@ -172,29 +183,22 @@ function setup() {
 
   cam = createCamera();
   setCamera(cam);
-  cam.setPosition(0,20,0);
-  cam.lookAt(0,0,0);
+
   // allow objects closer to the camera than default
   perspective(2*atan(height / 1600),width/height,10,1000);
   strokeWeight(0.1);
+
+  cam.setPosition(0,-800,0);
+  cam.tilt(PI/2);
 
   noCursor();
 
   if(!shared.maze) {
     createMaze();
+    shared.xp = Array(xCells).fill().map(
+      (x) => Array(zCells).fill(0)
+    );
   }
-
-  xp = Array(xCells).fill().map(
-    (x) => Array(zCells).fill(0)
-  );
-  setInterval(spawnXP, 400);
-}
-
-function spawnXP() {
-  let randX = floor(random(xCells));
-  let randZ = floor(random(zCells));
-
-  xp[randX][randZ] = min(xp[randX][randZ]+1, maxXP);
 }
 
 function checkCollision(dx, dz) {
@@ -303,7 +307,7 @@ function drawMaze() {
 
 function drawPlayers() {
   for (const player of guests) {
-    if (player === me) {
+    if (player === me || !player.active) {
       continue;
     }
 
@@ -333,7 +337,14 @@ function lightScene() {
   noLights();
   ambientLight(20);
 
+  if (!me.active) {
+    pointLight(128,128,128,0,800,0)
+  }
+
   for (const player of guests) {
+    if (!player.active) {
+      continue;
+    }
     spotLight(
       color(150),
       player.x,player.y,player.z,
@@ -349,10 +360,10 @@ function drawXP() {
   shininess(10);
   for(let i = 0; i<xCells; ++i) {
     for(let j = 0; j<zCells; ++j) {
-      if (!xp[i][j]) {
+      if (!shared.xp[i][j]) {
         continue;
       }
-      let rad = lerp(1,maxXPrad, xp[i][j]/maxXP);
+      let rad = lerp(1,maxXPrad, shared.xp[i][j]/maxXP);
 
       push();
       translate(
@@ -372,7 +383,7 @@ function drawXP() {
 function draw() {
   background(33, 54, 63);
 
-  if (locked) {
+  if (me.active) {
     calculateRot();
     movePlayer();
   }
@@ -398,7 +409,7 @@ function draw() {
 
 function keyPressed() {
   if (key === "r" && partyIsHost()) {
-    xp = Array(xCells).fill().map(
+    shared.xp = Array(xCells).fill().map(
       (x) => Array(zCells).fill(0)
     );
 
