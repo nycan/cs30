@@ -1,9 +1,10 @@
-// Project Title
-// Your Name
-// Date
+// Maze game
+// N Young
+// Nov 15
+// this code feels too spaghetti to work
 //
 // Extra for Experts:
-// - describe what you did to take this project "above and beyond"
+// 3d, multiplayer, MST, 
 
 let locked = false;
 
@@ -201,27 +202,63 @@ function setup() {
   }
 }
 
-function checkCollision(dx, dz) {
-  const CORNER_X = [1,1,-1,-1];
-  const CORNER_Z = [-1,1,1,-1];
-
-  let corners = {
-    x: Array(4).fill().map((x,i) =>
-      playerWidth/2*(CORNER_X[i]*cos(me.az)-CORNER_Z[i]*sin(me.az))+me.x
-    ),
-    z: Array(4).fill().map((x,i) =>
-      playerWidth/2*(CORNER_X[i]*sin(me.az)+CORNER_Z[i]*cos(me.az))+me.z
-    )
+// world coords --> maze coords
+function getCell(x,z) {
+  return {
+    x: floor(x/cellSize)+xCells/2,
+    z: floor(z/cellSize)+zCells/2
   };
+}
 
-  // get their maze coordinates
-  let cell = {
-    x: floor((me.x+cellSize*xCells/2)/cellSize),
-    z: floor((me.z+cellSize*zCells/2)/cellSize)
+// note that since the character is a square,
+// rotation can be taken mod pi/2
+// thus, we only need to check one corner for each side
+// important: this would break if playerWidth > cellSize
+function checkCollision() {
+  const ANGLES = [-PI/4, PI/4, 3*PI/4, -3*PI/4];
+
+  let pCell = getCell(me.x,me.z);
+
+  // may be a better way to do this...
+  // represents the constraints for each side
+  let mx = Number.MAX_VALUE;
+  let mn = -mx;
+
+  let minX = [mn,mn,cellSize*(-xCells/2+pCell.x),mn];
+  let minZ = [mn,mn,mn,cellSize*(-zCells/2+pCell.z)];
+  let maxX = [cellSize*(-xCells/2+pCell.x+1),mx,mx,mx];
+  let maxZ = [mx,cellSize*(-zCells/2+pCell.z+1),mx,mx];
+
+  let mRot = (me.rot+2*PI) % (PI/2);
+
+  let xChange = 0;
+  let zChange = 0;
+  
+  for (let i = 0; i<4; ++i) {
+    if (shared.maze[pCell.x][pCell.z][i]) {
+      continue;
+    }
+
+    let corner = {
+      x: me.x + playerWidth/2 * cos(ANGLES[i]+mRot),
+      z: me.z + playerWidth/2 * sin(ANGLES[i]+mRot)
+    }
+    let constrained = {
+      x: constrain(corner.x, minX[i], maxX[i]),
+      z: constrain(corner.z, minZ[i], maxZ[i])
+    }
+
+    if (xChange === 0) {
+      xChange = constrained.x - corner.x;
+    }
+    if (zChange === 0) {
+      zChange = constrained.z - corner.z;
+    }
   }
-  if (cell.x<0 || cell.x>=xCells || cell.z<0 || cell.z>=zCells) {
-    return {x: dx, z: dz}; // they found a way to escape!
-  }
+
+  cam.setPosition(
+    cam.eyeX+xChange, cam.eyeY, cam.eyeZ+zChange
+  );
 }
 
 function movePlayer() {
@@ -253,9 +290,7 @@ function movePlayer() {
   cam.move(dx,0,dz);
   cam.tilt(me.tilt);
 
-  //checkCollision(dx,dz);
-  //let final = checkCollision(dx, dz);
-  let final = {x: dx, z: dz};
+  checkCollision();
 
   me.x = cam.eyeX;
   me.z = cam.eyeZ;
@@ -328,8 +363,6 @@ function drawPlayers() {
     rotateX(-player.tilt);
     box(playerHead);
     pop();
-
-    fill("white");
   }
 }
 
@@ -337,10 +370,12 @@ function lightScene() {
   noLights();
   ambientLight(20);
 
+  // makes it easier to spectate
   if (!me.active) {
-    pointLight(128,128,128,0,800,0)
+    pointLight(color(128),0,800,0);
   }
 
+  // headlamps
   for (const player of guests) {
     if (!player.active) {
       continue;
