@@ -23,7 +23,7 @@ let meXP;
 let xpSpawner;
 
 const speed = 80;
-const sensitivity = 0.01;
+const sensitivity = 0.007;
 
 const cellSize = 40;
 const xCells = 20;
@@ -186,7 +186,7 @@ function setup() {
   setCamera(cam);
 
   // allow objects closer to the camera than default
-  perspective(2*atan(height / 1600),width/height,10,1000);
+  perspective(2*atan(height / 1600),width/height,0,1000);
   strokeWeight(0.1);
 
   cam.setPosition(0,-800,0);
@@ -199,6 +199,10 @@ function setup() {
     shared.xp = Array(xCells).fill().map(
       (x) => Array(zCells).fill(0)
     );
+  }
+
+  for (let element of document.getElementsByClassName("p5Canvas")) {
+    element.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 }
 
