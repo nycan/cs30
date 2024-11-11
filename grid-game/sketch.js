@@ -4,7 +4,7 @@
 // this code feels too spaghetti to work
 //
 // Extra for Experts:
-// 3d, multiplayer, MST, 
+// 3d, multiplayer, MST, pointer lock
 
 let locked = false;
 
@@ -41,6 +41,7 @@ const maxXP = 100;
 const maxXPrad = 15;
 const minXPrad = 3;
 const xpInterval = 800;
+const pickupRadius = 30;
 
 const colours = [
   "burlywood",
@@ -148,6 +149,7 @@ function preload() {
   me = partyLoadMyShared({
     x: 0, y: -5, z: 0,
     tilt: 0, rot: 0,
+    xp: 0,
     colour: random(colours),
     active: false
   });
@@ -222,6 +224,8 @@ function checkCollision() {
   const ANGLES = [-PI/4, PI/4, 3*PI/4, -3*PI/4];
 
   let pCell = getCell(me.x,me.z);
+  pCell.x = constrain(pCell.x,0,xCells-1);
+  pCell.z = constrain(pCell.z,0,zCells-1);
 
   // may be a better way to do this...
   // represents the constraints for each side
@@ -247,16 +251,12 @@ function checkCollision() {
       x: me.x + playerWidth/2 * cos(ANGLES[i]+mRot),
       z: me.z + playerWidth/2 * sin(ANGLES[i]+mRot)
     }
-    let constrained = {
-      x: constrain(corner.x, minX[i], maxX[i]),
-      z: constrain(corner.z, minZ[i], maxZ[i])
-    }
 
     if (xChange === 0) {
-      xChange = constrained.x - corner.x;
+      xChange = constrain(corner.x, minX[i], maxX[i]) - corner.x;
     }
     if (zChange === 0) {
-      zChange = constrained.z - corner.z;
+      zChange = constrain(corner.z, minZ[i], maxZ[i]) - corner.z;
     }
   }
 
@@ -313,8 +313,42 @@ function calculateRot() {
   me.tilt = next;
 }
 
+function pickup() {
+  // avoid searching the entire grid for xp to pickup
+  let cellDist = floor(pickupRadius/cellSize);
+
+  let cell = getCell(me.x,me.z);
+
+  for(let i = cell.x-cellDist; i<=cell.x+cellDist; ++i) {
+    for(let j = cell.z-cellDist; j<=cell.z+cellDist; ++j) {
+      let rad = lerp(1,maxXPrad, shared.xp[i][j]/maxXP);
+      let xpPos = {
+        x: cellSize*(-xCells/2 + i + 1/2),
+        y: wallHeight/2-rad,
+        z: cellSize*(-zCells/2 + j + 1/2)
+      };
+
+      if(dist(
+        me.x,me.y,me.z,
+        xpPos.x,xpPos.y,xpPos.z
+      )) {
+        me.xp += shared.xp[i][j];
+        shared.xp[i][j] = 0;
+      }
+    }
+  }
+}
+
 // draw all the lines
 function drawMaze() {
+  // floor
+  push();
+  translate(0,wallHeight/2,0);
+  rotate(PI/2,[1,0,0]);
+  plane(xCells*cellSize,zCells*cellSize);
+  pop();
+
+  // walls
   for(let x = 0; x<xCells; ++x) {
     for(let y = 0; y<zCells; ++y) {
       for(let i = 0; i<4; ++i) {
@@ -344,6 +378,29 @@ function drawMaze() {
   }
 }
 
+function lightScene() {
+  noLights();
+  ambientLight(20);
+
+  // makes it easier to spectate
+  if (!me.active) {
+    pointLight(color(128),0,800,0);
+  }
+
+  // headlamps
+  for (const player of guests) {
+    if (!player.active) {
+      continue;
+    }
+    spotLight(
+      color(150),
+      player.x,player.y,player.z,
+      sin(player.rot),sin(player.tilt),cos(player.rot),
+      PI/3, 50
+    );
+  }
+}
+
 function drawPlayers() {
   for (const player of guests) {
     if (player === me || !player.active) {
@@ -367,29 +424,6 @@ function drawPlayers() {
     rotateX(-player.tilt);
     box(playerHead);
     pop();
-  }
-}
-
-function lightScene() {
-  noLights();
-  ambientLight(20);
-
-  // makes it easier to spectate
-  if (!me.active) {
-    pointLight(color(128),0,800,0);
-  }
-
-  // headlamps
-  for (const player of guests) {
-    if (!player.active) {
-      continue;
-    }
-    spotLight(
-      color(150),
-      player.x,player.y,player.z,
-      sin(player.rot),sin(player.tilt),cos(player.rot),
-      PI/3, 50
-    );
   }
 }
 
@@ -425,6 +459,7 @@ function draw() {
   if (me.active) {
     calculateRot();
     movePlayer();
+    pickup();
   }
 
   lightScene();
@@ -434,13 +469,6 @@ function draw() {
   noStroke();
   ambientMaterial(255);
   specularMaterial(150);
-
-  // floor
-  push();
-  translate(0,wallHeight/2,0);
-  rotate(PI/2,[1,0,0]);
-  plane(xCells*cellSize,zCells*cellSize);
-  pop();
 
   drawMaze();
   drawPlayers();
