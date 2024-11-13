@@ -22,6 +22,8 @@ let xp;
 let meXP;
 let xpSpawner;
 
+let graphics;
+
 const speed = 80;
 const sensitivity = 0.007;
 
@@ -77,7 +79,8 @@ function unionize(a, b) {
   if (dsuSize[a[0]][a[1]]<dsuSize[b[0]][b[1]]) {
     dsu[a[0]][a[1]] = b;
     dsuSize[b[0]][b[1]] += dsuSize[a[0]][a[1]];
-  } else {
+  }
+  else {
     dsu[b[0]][b[1]] = a;
     dsuSize[a[0]][a[1]] += dsuSize[b[0]][b[1]];
   }
@@ -184,6 +187,7 @@ function spawnXP() {
 
 function setup() {
   createCanvas(windowWidth, windowHeight, WEBGL);
+  graphics = createGraphics(width, height);
 
   cam = createCamera();
   setCamera(cam);
@@ -251,7 +255,7 @@ function checkCollision() {
     let corner = {
       x: me.x + playerWidth/2 * cos(ANGLES[i]+mRot),
       z: me.z + playerWidth/2 * sin(ANGLES[i]+mRot)
-    }
+    };
 
     if (xChange === 0) {
       xChange = constrain(corner.x, minX[i], maxX[i]) - corner.x;
@@ -473,6 +477,10 @@ function draw() {
 
   drawMaze();
   drawPlayers();
+
+  resetMatrix();
+  graphics.rect(0,0,100,100);
+  image(graphics,0,0);
 }
 
 function keyPressed() {
