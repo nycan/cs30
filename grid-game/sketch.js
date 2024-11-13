@@ -68,7 +68,8 @@ function find(n) {
 function unionize(a, b) {
   a = find(a);
   b = find(b);
-  if (a===b) {
+  if (a[0]===b[0] && a[1]===b[1]) {
+    console.log("test");
     return false;
   }
 
