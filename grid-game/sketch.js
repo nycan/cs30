@@ -60,10 +60,11 @@ const colours = [
 
 // search up "disjoint set union"
 function find(n) {
-  if (dsu[n[0]][n[1]]===n) {
-    return n;
+  if (dsu[n[0]][n[1]][0]===n[0] && dsu[n[0]][n[1]][1]===n[1]) {
+    return n.slice();
   }
-  return dsu[n[0]][n[1]] = find(dsu[n[0]][n[1]]);
+  dsu[n[0]][n[1]] = find(dsu[n[0]][n[1]]).slice();
+  return dsu[n[0]][n[1]].slice();
 }
 
 // dont let bezos see this
@@ -77,11 +78,11 @@ function unionize(a, b) {
 
   // js doesn't have a built-in swap function :(
   if (dsuSize[a[0]][a[1]]<dsuSize[b[0]][b[1]]) {
-    dsu[a[0]][a[1]] = b;
+    dsu[a[0]][a[1]] = b.slice();
     dsuSize[b[0]][b[1]] += dsuSize[a[0]][a[1]];
   }
   else {
-    dsu[b[0]][b[1]] = a;
+    dsu[b[0]][b[1]] = a.slice();
     dsuSize[a[0]][a[1]] += dsuSize[b[0]][b[1]];
   }
 
