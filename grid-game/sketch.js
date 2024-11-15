@@ -22,9 +22,14 @@ let xp;
 let meXP;
 let xpSpawner;
 
-let graphics;
+let gVel = 0; //velocity from gravity
 
-const speed = 80;
+let jumpSpeed = 5;
+let speed = 50;
+let pickupRadius = 25;
+
+let level = 1;
+
 const sensitivity = 0.007;
 
 const cellSize = 40;
@@ -38,12 +43,14 @@ const playerWidth = 10;
 const playerBody = 17; // body height
 const playerHead = 6; // head height
 const wallHeight = 30;
+const defaultY = -5;
 
 const maxXP = 100;
 const maxXPrad = 15;
 const minXPrad = 3;
 const xpInterval = 800;
-const pickupRadius = 30;
+
+const gravity = 0.8;
 
 const colours = [
   "burlywood",
@@ -72,7 +79,6 @@ function unionize(a, b) {
   a = find(a);
   b = find(b);
   if (a[0]===b[0] && a[1]===b[1]) {
-    console.log("test");
     return false;
   }
 
@@ -152,11 +158,12 @@ function preload() {
   //shared = partyLoadShared("shared", shared);
   // position and camera rotation
   me = partyLoadMyShared({
-    x: 0, y: -5, z: 0,
+    x: 0, y: defaultY, z: 0,
     tilt: 0, rot: 0,
     xp: 0,
     colour: random(colours),
-    active: false
+    active: false,
+    health: 5
   });
   guests = partyLoadGuestShareds();
   shared = partyLoadShared("shared");
@@ -177,6 +184,11 @@ function doubleClicked() {
   xpSpawner = setInterval(spawnXP, 400);
 
   me.active = true;
+  me.health = 5;
+  level = 1;
+  speed = 50;
+  jupmSpeed = 5;
+  pickupRadius = 25;
 }
 
 function spawnXP() {
@@ -227,6 +239,14 @@ function getCell(x,z) {
 // thus, we only need to check one corner for each side
 // important: this would break if playerWidth > cellSize
 function checkCollision() {
+  if (me.y < -wallHeight/2) {
+    // only collide with edge walls if above walls
+    let newX = constrain(cam.eyeX,-xCells/2*cellSize,xCells/2*cellSize);
+    let newZ = constrain(cam.eyeZ,-zCells/2*cellSize,zCells/2*cellSize);
+    cam.setPosition(newX, me.y, newZ);
+    return;
+  }
+
   const ANGLES = [-PI/4, PI/4, 3*PI/4, -3*PI/4];
 
   let pCell = getCell(me.x,me.z);
@@ -272,7 +292,6 @@ function checkCollision() {
 }
 
 function movePlayer() {
-  //const angles = [0, PI/2, PI, -PI/2];
   const keys = [68,83,65,87]; // dsaw
 
   let dx = 0;
@@ -304,6 +323,14 @@ function movePlayer() {
 
   me.x = cam.eyeX;
   me.z = cam.eyeZ;
+
+  if (keyIsDown(32) && me.y >= defaultY) { // space = jump
+    gVel = -jumpSpeed;
+  }
+
+  gVel += gravity;
+  me.y = min(me.y+gVel,defaultY);
+  cam.setPosition(me.x,me.y,me.z);
 }
 
 function calculateRot() {
@@ -342,6 +369,13 @@ function pickup() {
         shared.xp[i][j] = 0;
       }
     }
+  }
+
+  if (me.xp >= floor(Math.pow(1.6,level+1))) {
+    ++level;
+    speed += 4;
+    pickupRadius += 1.5;
+    jumpSpeed += 0.3;
   }
 }
 
@@ -478,10 +512,6 @@ function draw() {
 
   drawMaze();
   drawPlayers();
-
-  resetMatrix();
-  graphics.rect(0,0,100,100);
-  image(graphics,0,0);
 }
 
 function keyPressed() {
@@ -491,5 +521,42 @@ function keyPressed() {
     );
 
     createMaze();
+  }
+}
+
+// NOTE: this is useless. couldnt get it to work in the last 15 minutes of class
+// is player hitting given player
+function checkHit(playerX, playerZ) {
+  let xDiff = cam.centerX - cam.eyeX;
+  let zDiff = cam.centerZ - cam.eyeZ;
+
+  let newZ = zDiff * (playerX-playerWidth/2-me.x)/xDiff;
+  if (newZ >= playerZ-playerWidth/2 && newZ <= playerZ+playerWidth/2) {
+    return true;
+  }
+  newZ = zDiff * (playerX+playerWidth/2-me.x)/xDiff;
+  if (newZ >= playerZ-playerWidth/2 && newZ <= playerZ+playerWidth/2) {
+    return true;
+  }
+  let newX = xDiff * (playerZ-playerWidth/2-me.z)/zDiff;
+  if (newX >= playerX-playerWidth/2 && newX <= playerX+playerWidth/2) {
+    return true;
+  }
+  newX = xDiff * (playerZ+playerWidth/2-me.z)/zDiff;
+  if (newX >= playerX-playerWidth/2 && newX <= playerX+playerWidth/2) {
+    return true;
+  }
+  console.log("test");
+  return false;
+}
+
+function mousePressed() {
+  for (const player of guests) {
+    if (dist(me.x,me.y,me.z,player.x,player.y,player.z) > 10) {
+      continue;
+    }
+    if (checkHit(player.x, player.z)) {
+      player.health -= 1;
+    }
   }
 }
